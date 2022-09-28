@@ -8,37 +8,14 @@
 # Date: 27 de Septiembre del 2022         #
 #*****************************************#
 
-# Root directories to scan (will be scanned recursively)
-inputDir=("./input")
-
-# Extensions of the files to be scanned
-extensions=("html" "php" "js" "json")
-
-# Icon prefixes to look for
-prefix=("fa-")
-
-# SVG asset location
-svgs="./svgs"
-
-# Output root directory
-output="./output"
-
-
-#Case sensitive extensions, set "0" to disable
-iprefix="1"
-
-#Extracted svg directory
-extractedSvgs="$output/svgs"
-
-
-while getopts i:e:o:s:p: flag
+while getopts i:e:p:s:o: flag
 do
     case "${flag}" in
         i) inputDir=(${OPTARG});;
         e) extensions=(${OPTARG});;
-        o) output=${OPTARG};;
-        s) svgs=${OPTARG};;
         p) prefix=(${OPTARG});;
+        s) svgs=${OPTARG};;
+        o) output=${OPTARG};;
 
         *)
           exit 1
@@ -46,13 +23,61 @@ do
     esac
 done
 
+#--------- Configs ----------#
+
+#### General config ####
+# Root directories to scan (will be scanned recursively)
+inputDir=("./input")
+
+# Extensions of the files to be scanned
+extensions=("html" "php" "js" "json")
+#Case sensitive extensions scanning, set "0" to disable
+extDistinct="1"
+
+# Icon prefixes to look for
+prefix=("fa-")
+
+# Input SVG location
+svgs="./svgs"
+
+# Script output folder
+output="./output"
+
+#### Icon subset results ####
+# css output folder (may be different than output folder)
+faCssDir="$output/css"
+
+# Font output folder (may be different than output folder)
+faFontDir="$output/font"
+
+# Font src url in css classes (Font folder path is relative to css output folder)
+faFontsUrl="../$(echo $faFontDir | rev | cut -d '/' -f 1 | rev )"
+#faFontsUrl="../font"
+
+#-------- End Configs --------#
+
 
 iconFound="$output/icon-found.txt"
 matchedIcon="$output/icon-matching.txt"
 missingIcon="$output/icon-missing.txt"
 auxTxt="aux.txt"
+extractedSvgs="$output/svgs"
 
+faCONF=$(cat << END
+module.exports = {
+  inputDir: '$extractedSvgs',
+  outputDir: '$faFontDir',
+  fontTypes: ['eot', 'ttf', 'woff', 'woff2', 'svg'],
+  assetTypes: ['css'],
+  fontsUrl: '$faFontsUrl',
+  pathOptions: {
+    css: '$faCssDir/icons.css',
+  },
+};
+END
+)
 
+# Get files to be scanned
 function get_files {
   if [ "$extDistinct" = "0" ]; then
     name="-iname"
@@ -70,42 +95,19 @@ function get_files {
   tmpFiles=($(find ${inputDir[@]} -type f ${ext[@]}))
 }
 
+# Extract matching svg
 function extract {
-  echo
-  echo
-  echo $"$(tput setaf 2)Extracting...$(tput sgr 0)"
-  echo
-
   mkdir -p $extractedSvgs
 
   for var4 in $(cat $matchedIcon)
   do
     cp $svgs/$var4.svg $extractedSvgs &>/dev/null
   done
-
-  echo
-  echo
-  echo $"$(tput setaf 2)Done$(tput sgr 0)"
-  echo
-  echo
-  echo -n "Press ENTER..."
-  read -rs input
 }
 
+# Scan files and get icon matches
 function scan {
-  echo
-  echo
-  echo $"$(tput setaf 2)Scaning...$(tput sgr 0)"
-  echo
-
   mkdir -p $inputDir $svgs
-
-  for i in "${inputDir[@]}"
-  do
-    echo -n "$(tput setaf 3)$i$(tput sgr 0), "
-  done
-  echo
-  echo
   
   get_files
   
@@ -168,82 +170,165 @@ function scan {
     countFound="0"
     countMatches="0"
     countMissings="0"
-  fi; 
+  fi;
+}
+
+# Generate fonts and css
+function compile {
+  mkdir -p $faFontDir $faCssDir
+
+  truncate -s0 "$output/.fantasticonrc"
+  truncate -s0 "$faCssDir/icons.css"
+  echo "$faCONF" > "$output/.fantasticonrc"
+
+  fantasticon --config "$output/.fantasticonrc"
+}
+
+# Scan messages
+function scan_verbose {
+  clear
+  clear
+  echo $"$(tput setaf 6)Scaning...$(tput sgr 0)"
+  echo
   
-  
-  loop="1"
-  while [ $loop = "1" ]
+  scan
+
+  while :
   do
-    clear
-    clear
-    echo
-    echo "$(tput setaf 6)Scanned Directories:$(tput sgr 0)"
-    echo
-    for i in "${inputDir[@]}"
-    do
-      echo -n "$(tput setaf 3)$i$(tput sgr 0), "
-    done
-    echo
-    echo
-    echo "$(tput setaf 6)Files with icons:$(tput sgr 0)"
-    echo 
-    echo "$(tput setaf 3)$fileList$(tput sgr 0)"
-    echo 
-    echo "$(tput setaf 6)Found icons:"
-    echo
-    echo "$(tput setaf 3)$countFound$(tput sgr 0)"
-    echo
-    echo "$(tput setaf 6)Matched icons:"
-    echo
-    echo "$(tput setaf 3)$countMatches$(tput sgr 0)"
-    echo
-    echo "$(tput setaf 6)Missing icons:"
-    echo
-    echo "$(tput setaf 3)$countMissings$(tput sgr 0)"
-    
     if [ "$fileList" != 0 ]; then
+      clear
+      clear
+      echo
+      echo "$(tput setaf 6)Files with icons:$(tput sgr 0)"
+      echo 
+      echo "$fileList"
+      echo 
+      echo "$(tput setaf 6)Found icons:$(tput sgr 0)"
+      echo
+      echo "$countFound"
+      echo
+      echo "$(tput setaf 6)Matched icons:$(tput sgr 0)"
+      echo
+      echo "$countMatches"
+      echo
+      echo "$(tput setaf 6)Missing icons:$(tput sgr 0)"
+      echo
+      echo "$countMissings"
       echo
       echo
-      echo -n "[$(tput setaf 2)d$(tput sgr 0)] details, [$(tput setaf 2)e$(tput sgr 0)] extract icons, [$(tput setaf 2)q$(tput sgr 0)] quit: "
-      read input
+      echo -n "[$(tput setaf 2)d$(tput sgr 0)] details, [$(tput setaf 2)r$(tput sgr 0)] return, [$(tput setaf 2)q$(tput sgr 0)] quit: "
+      read -n1 input
 
       if [ "$input" = "d" -o "$input" = "D" ]; then
-        clear
-        clear
-        echo
-        echo "$(tput setaf 6)Matched icons (to be exported):"
-        echo
-        echo "$(tput setaf 3)$(cat $matchedIcon;)$(tput sgr 0)"
-        if [ $countMissings != 0 ]; then
+        input=""
+        until [ $input == "r" ]
+        do
+          clear
+          clear
           echo
-          echo "$(tput setaf 6)Missing icons (no SVG available):"
+          echo "$(tput setaf 6)Matched icons (to be exported):$(tput sgr 0)"
           echo
-          echo "$(tput setaf 3)$(cat $missingIcon;)$(tput sgr 0)"
-        fi;
-        echo
-        echo
-        echo -n "Press ENTER..."
-        read -rs input
-      elif [ "$input" = "e" -o "$input" = "E" ]; then
-        clear
-        clear
-
-        extract
-      else
-        loop="0"
+          echo "$(cat $matchedIcon;)"
+          if [ $countMissings != 0 ]; then
+            echo
+            echo "$(tput setaf 6)Missing icons (no SVG available):$(tput sgr 0)"
+            echo
+            echo "$(cat $missingIcon;)"
+          fi;
+          echo
+          echo
+          echo -n "[$(tput setaf 2)r$(tput sgr 0)] return: "
+          read -n1 input
+        done
+      elif [ "$input" = "r" -o "$input" = "R" ]; then
+        break
+      elif [ "$input" = "q" -o "$input" = "Q" ]; then
+        exit
       fi;
     else
+      clear
+      clear
+      echo $"$(tput setaf 3)no icons found$(tput sgr 0)"
       echo
       echo
       echo -n "Press ENTER..."
       read -rs input
-      loop="0"
+      break
     fi;
   done
 }
 
-function start_menu {
+# Extract messages
+function extract_verbose {
+  clear
+  clear
+  echo $"$(tput setaf 6)Scaning...$(tput sgr 0)"
+  echo
+  
+  scan
+  
+  if [ "$fileList" != 0 ]; then
+    echo $"$(tput setaf 2)done$(tput sgr 0)"
+    echo
+    echo $"$(tput setaf 6)Extracting...$(tput sgr 0)"
+    echo
 
+    extract
+
+    clear
+    clear
+    echo $"$(tput setaf 2)success$(tput sgr 0)"
+    echo
+    echo
+    echo "$(tput setaf 6)$countMatches icons were extracted in $extractedSvgs $(tput sgr 0)"
+  else
+    clear
+    clear
+    echo $"$(tput setaf 3)nothing to do (no icons found)$(tput sgr 0)"
+  fi
+  echo
+  echo
+  echo -n "Press ENTER..."
+  read -rs input
+}
+
+# Compile messages
+function compile_verbose {
+  clear
+  clear
+  echo $"$(tput setaf 6)Scaning...$(tput sgr 0)"
+  echo
+  
+  scan
+  
+  if [ "$fileList" != 0 ]; then
+    echo $"$(tput setaf 2)done$(tput sgr 0)"
+    echo
+    echo $"$(tput setaf 6)Extracting...$(tput sgr 0)"
+    echo
+
+    extract
+
+    echo $"$(tput setaf 2)done$(tput sgr 0)"
+    echo
+    #echo $"$(tput setaf 6)Compiling...$(tput sgr 0)"
+    #echo
+
+    compile
+
+  else
+    clear
+    clear
+    echo $"$(tput setaf 3)nothing to do (no icons found)$(tput sgr 0)"
+  fi
+  echo
+  echo
+  echo -n "Press ENTER..."
+  read -rs input
+}
+
+# Main
+function start {
   while :
   do
     clear
@@ -256,32 +341,34 @@ function start_menu {
     echo
     echo "$(tput setaf 6)Defined params:$(tput sgr 0)"
     echo
-    echo "- Directories to scan  =  $(tput setaf 3)${inputDir[@]}$(tput sgr 0)"
-    echo "- Files to be scanned  =  $(tput setaf 3)${extensions[@]}$(tput sgr 0)"
-    echo "- Icon prefixes        =  $(tput setaf 3)${prefix[@]}$(tput sgr 0)"
-    echo "- SVG location         =  $(tput setaf 3)$svgs$(tput sgr 0)"
-    echo "- Output root          =  $(tput setaf 3)$output$(tput sgr 0)"
+    echo "- Directories to scan  =  $(tput setaf 4)${inputDir[@]}$(tput sgr 0)"
+    echo "- Files to be scanned  =  $(tput setaf 4)${extensions[@]}$(tput sgr 0)"
+    echo "- Icon prefixes        =  $(tput setaf 4)${prefix[@]}$(tput sgr 0)"
+    echo "- SVG location         =  $(tput setaf 4)$svgs$(tput sgr 0)"
+    echo "- Output root          =  $(tput setaf 4)$output$(tput sgr 0)"
     echo
     echo
-    echo -n "[$(tput setaf 2)run$(tput sgr 0)] run scan, [$(tput setaf 2)exit$(tput sgr 0)] close this tool: "
-    read option
+    echo -n "[$(tput setaf 2)s$(tput sgr 0)] scan, [$(tput setaf 2)e$(tput sgr 0)] extract, [$(tput setaf 2)c$(tput sgr 0)] compile, [$(tput setaf 2)q$(tput sgr 0)] quit: "
+    read -n1 option
     echo $(tput sgr 0)
     
     case $option in
 
-    ("run")
-      clear
-      clear
+    ("s"|"S")
+      scan_verbose;;
 
-      scan;;
+    ("e"|"E")
+      extract_verbose;;
 
-    ("exit")
+    ("c"|"C")
+      compile_verbose;;
+
+    ("q"|"Q")
       clear
       clear
-      break;;
-      
+      exit;;
     esac
   done
 }
 
-start_menu
+start
