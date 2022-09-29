@@ -8,20 +8,6 @@
 # Date: 27 de Septiembre del 2022         #
 #*****************************************#
 
-while getopts i:e:p:s:o: flag
-do
-    case "${flag}" in
-        i) inputDir=(${OPTARG});;
-        e) extensions=(${OPTARG});;
-        p) prefix=(${OPTARG});;
-        s) svgs=${OPTARG};;
-        o) output=${OPTARG};;
-
-        *)
-          exit 1
-        ;;
-    esac
-done
 
 #--------- Configs ----------#
 
@@ -55,6 +41,21 @@ faFontsUrl="../$(echo $faFontDir | rev | cut -d '/' -f 1 | rev )"
 #faFontsUrl="../font"
 
 #-------- End Configs --------#
+
+while getopts i:e:p:s:o: flag
+do
+    case "${flag}" in
+        i) inputDir=(${OPTARG});;
+        e) extensions=(${OPTARG});;
+        p) prefix=(${OPTARG});;
+        s) svgs=${OPTARG};;
+        o) output=${OPTARG};;
+
+        *)
+          exit 1
+        ;;
+    esac
+done
 
 
 iconFound="$output/icon-found.txt"
