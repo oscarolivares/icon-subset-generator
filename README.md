@@ -12,13 +12,26 @@ Icon subset generator from website project files
 - [Font Custom](https://github.com/FontCustom/fontcustom) and its dependencies
 - [fantasticon](https://github.com/tancredi/fantasticon)
 
-## Use
+## How to use
 
 1. Put the files to scan in the **input** folder
 2. Insert all svgs that you need in the **svgs** folder
-3. Run the **iconsubset.sh** script
+3. Run the script:
 
-_Note: All predefined params (input path, output path, icon prefixes, etc.) can be changed in the config section of the **iconsubset.sh** file_
+```console
+Usage: iconsubset [options]
+
+Options:
+  -i: Input path (default: ./input)
+  -e: Extensions to be scanned (default: "html" "php" "js" "json")
+  -p: Icon prefixes to look for (default: "fa-")
+  -s: SVG input path (default: ./svgs)
+  -o: Output path (default: ./output)
+  -n: Base name of the font set (default: icons)
+  -P: Output css prefix (default: icon)
+```
+
+_Note: All options can be changed in the config section of the **iconsubset.sh** file_
 
 ## Installation notes
 

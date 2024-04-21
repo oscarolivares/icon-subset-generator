@@ -12,7 +12,7 @@
 #--------- Configs ----------#
 
 #### General config ####
-# Root directories to scan (will be scanned recursively)
+# Root directories to scan (to be scanned recursively)
 inputDir=("./input")
 
 # Extensions of the files to be scanned
@@ -23,11 +23,17 @@ extDistinct="1"
 # Icon prefixes to look for
 prefix=("fa-")
 
-# Input SVG location
+# SVG input path
 svgs="./svgs"
 
-# Script output folder
+# Output path
 output="./output"
+
+# Base name of the font set
+baseName="icons"
+
+# Output css prefix
+outputPrefix="icon"
 
 #### Icon subset results ####
 # css output folder (may be different than output folder)
@@ -42,7 +48,7 @@ faFontsUrl="../$(echo $faFontDir | rev | cut -d '/' -f 1 | rev )"
 
 #-------- End Configs --------#
 
-while getopts i:e:p:s:o: flag
+while getopts i:e:p:s:o:n:P: flag
 do
     case "${flag}" in
         i) inputDir=(${OPTARG});;
@@ -50,6 +56,8 @@ do
         p) prefix=(${OPTARG});;
         s) svgs=${OPTARG};;
         o) output=${OPTARG};;
+        n) baseName=${OPTARG};;
+        P) outputPrefix=${OPTARG};;
 
         *)
           exit 1
@@ -68,11 +76,13 @@ faCONF=$(cat << END
 module.exports = {
   inputDir: '$extractedSvgs',
   outputDir: '$faFontDir',
+  name: '$baseName',
+  prefix: '$outputPrefix',
   fontTypes: ['eot', 'ttf', 'woff', 'woff2', 'svg'],
   assetTypes: ['css'],
   fontsUrl: '$faFontsUrl',
   pathOptions: {
-    css: '$faCssDir/icons.css',
+    css: '$faCssDir/$baseName.css',
   },
 };
 END
@@ -179,7 +189,7 @@ function compile {
   mkdir -p $faFontDir $faCssDir
 
   truncate -s0 "$output/.fantasticonrc"
-  truncate -s0 "$faCssDir/icons.css"
+  truncate -s0 "$faCssDir/$baseName.css"
   echo "$faCONF" > "$output/.fantasticonrc"
 
   fantasticon --config "$output/.fantasticonrc"
@@ -342,11 +352,13 @@ function start {
     echo
     echo "$(tput setaf 6)Defined params:$(tput sgr 0)"
     echo
-    echo "- Directories to scan  =  $(tput setaf 4)${inputDir[@]}$(tput sgr 0)"
-    echo "- Files to be scanned  =  $(tput setaf 4)${extensions[@]}$(tput sgr 0)"
-    echo "- Icon prefixes        =  $(tput setaf 4)${prefix[@]}$(tput sgr 0)"
-    echo "- SVG location         =  $(tput setaf 4)$svgs$(tput sgr 0)"
-    echo "- Output root          =  $(tput setaf 4)$output$(tput sgr 0)"
+    echo "- Directories to scan    =  $(tput setaf 4)${inputDir[@]}$(tput sgr 0)"
+    echo "- Files to be scanned    =  $(tput setaf 4)${extensions[@]}$(tput sgr 0)"
+    echo "- Icon prefixes to find  =  $(tput setaf 4)${prefix[@]}$(tput sgr 0)"
+    echo "- SVG location           =  $(tput setaf 4)$svgs$(tput sgr 0)"
+    echo "- Output root            =  $(tput setaf 4)$output$(tput sgr 0)"
+    echo "- Output base name       =  $(tput setaf 4)$baseName$(tput sgr 0)"
+    echo "- Output css prefix      =  $(tput setaf 4)$outputPrefix$(tput sgr 0)"
     echo
     echo
     echo -n "[$(tput setaf 2)s$(tput sgr 0)] scan, [$(tput setaf 2)e$(tput sgr 0)] extract, [$(tput setaf 2)c$(tput sgr 0)] compile, [$(tput setaf 2)q$(tput sgr 0)] quit: "
